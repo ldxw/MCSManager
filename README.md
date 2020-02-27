@@ -3,7 +3,7 @@
 [![Status](https://img.shields.io/badge/npm-v5.0.0-blue.svg)](https://www.npmjs.com/)
 [![Status](https://img.shields.io/badge/node-v8.0-blue.svg)](https://nodejs.org/en/download/)
 [![Status](https://travis-ci.org/Suwings/MCSManager.svg?branch=master)](https://travis-ci.org/Suwings/MCSManager)
-[![Status](https://img.shields.io/badge/License-AGPLv3-red.svg)](https://github.com/Suwings/MCSManager)
+[![Status](https://img.shields.io/badge/License-MIT-red.svg)](https://github.com/Suwings/MCSManager)
 
 
 简单，易用，多实例，轻量级的 Minecraft Server 控制面板
@@ -70,7 +70,8 @@ cd mcsmanager/
 # 安装依赖库
 npm install
 # 启动面板
-sudo npm start #或 sudo node app.js
+npm start 
+# 或者 node app.js
 
 ```
 
@@ -228,12 +229,8 @@ FTP 模块采用被动传输模式，传输命令默认使用 `10022`(可更改)
 
 <br />
 
-协议与版权
+开源协议
 -----------
-程序是基于 [GNU Affero General Public License v3.0](./LICENSE "GNU Affero General Public License v3.0")  开放源代码的自由软件。
-
-你可以遵照 AGPLv3 协议来修改和重新发布这一程序。
-
-或者，在学习或私自 (内部) 使用时，在不公开发布的原则下，可以无视这个**协议和版权**，因为这本身并不能束缚你，并且我们欢迎这样做。
+MIT License
 
 <br />
