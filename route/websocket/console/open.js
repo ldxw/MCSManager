@@ -13,8 +13,8 @@ WebSocketObserver().listener('server/console/open', (data) => {
     let serverName = data.body.trim();
     let userName = data.WsSession.username;
     if (permssion.isCanServer(userName, serverName)) {
+        MCSERVER.log('用户 ', userName, ' 正在启动 ', serverName, ' 服务端实例...');
         try {
-            MCSERVER.log('用户 ', userName, ' 正在启动 ', serverName, ' 服务端实例...');
             let retu = serverModel.startServer(serverName);
             if (!retu) {
                 response.wsMsgWindow(data.ws, '服务器无法启动,建议检查配置或权限');

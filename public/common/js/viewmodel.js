@@ -42,8 +42,7 @@
 	//单页生命周期替换事件
 	MI.listener('page/live', function (ws) {
 		for (var tmp in PAGE) delete PAGE[tmp];
-		delete PAGE;
-		PAGE = new Object();
+		window.PAGE = new Object();
 	});
 
 
@@ -126,55 +125,28 @@
 		MI.routeCopy('OneUserView', data.obj);
 	});
 
-	// Minecraft 服务器终端换行替换符
-	var terminalEncode = function (text) {
-		var consoleSafe = TOOLS.encode(text);
-		consoleSafe = consoleSafe.replace(/\[_b_r_\]/igm, '<br>');
-		return consoleSafe;
-	}
-
 	// 终端控制台界面，实时接受服务端终端日志
 	// 每当控制面板后端发送实时日志，都将第一时间触发此
 	MI.routeListener('server/console/ws', function (data) {
-		// 文本编码成 html 编码方式
-		var consoleSafe = terminalEncode(data.body);
-		// 因子页面生命周期，必须单独获取 dom
-		var MinecraftConsole = document.getElementById('TerminalMinecraft');
-		if (MinecraftConsole == null) {
-			console.error('MinecraftConsole is null');
-			return;
-		}
-		// 终端最长长度限制
-		if (MinecraftConsole.innerHTML.length > 340000) {
-			MinecraftConsole.innerHTML = "<br /><br />[ 控制面板 ]: 日志显示过长，为避免网页卡顿，现已自动清空。<br />[ 控制面板 ]: 若想回看历史日志，请点击右上角刷新按钮，再重新进入点击 [历史] 按钮即可。<br /><br />"
-		}
-		var flag = false;
-		// 判断用户是否自己移动了滚轴
-		var BUFF_FONTIER_SIZE_DOWN = MinecraftConsole.scrollHeight - MinecraftConsole.clientHeight;
-		flag = (MinecraftConsole.scrollTop + 354 >= BUFF_FONTIER_SIZE_DOWN);
-		// 处理控制台颜色与双问号
-		consoleSafe = TOOLS.encodeConsoleColor(consoleSafe);
-		consoleSafe = TOOLS.deletDoubleS(consoleSafe);
-		// 插入到页面控制台中
-		MinecraftConsole.innerHTML += consoleSafe;
-
-		if (flag)
-			MinecraftConsole.scrollTop = MinecraftConsole.scrollHeight;
+		var text = TOOLS.encodeConsoleColor(data.body);
+		MCSERVER.term.write(text);
 	});
 
+
 	// 获取MC服务端终端日志历史记录
+	var $ele = document.getElementById('LogHistoryTerminal');
 	MI.routeListener('server/console/history', function (data) {
-		var consoleSafe = terminalEncode(data.body);
-		var MinecraftConsole = document.getElementById('TerminalMinecraft');
-		var oldHeightV = MinecraftConsole.scrollHeight;
-		//颜色过滤
-		consoleSafe = TOOLS.encodeConsoleColor(consoleSafe);
-		consoleSafe = TOOLS.deletDoubleS(consoleSafe);
-		//incude
-		MinecraftConsole.innerHTML = consoleSafe + MinecraftConsole.innerHTML;
-		var newHeightV = MinecraftConsole.scrollHeight;
-		var resVTopLac = newHeightV - oldHeightV;
-		MinecraftConsole.scrollTop = resVTopLac - 999;
+		if (VIEW_MODEL['Terminal']['isHistoryMode']) {
+			var text = data.body;
+			text = text.replace(/\r\n/igm, '<br />');
+			if ((text + $ele.innerHTML).length > 20000) {
+				$ele.innerHTML = "";
+			}
+			$ele.innerHTML = text + $ele.innerHTML;
+		} else {
+			var text = TOOLS.encodeConsoleColor(data.body);
+			MCSERVER.term.write(text);
+		}
 	});
 
 	// 普通用户主页

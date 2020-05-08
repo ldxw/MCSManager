@@ -113,12 +113,18 @@ WebSocketObserver().listener('server/opt_all', (data) => {
                 if (command == "start") {
                     server.start();
                 } else {
+                    // 临时性的关闭自动重启
+                    let isRestart = server.dataModel.autoRestart;
+                    if (isRestart) {
+                        server.dataModel.autoRestart = false;
+                        server._onceStopRestart = true;
+                    }
                     server.send('stop');
                     server.send('end');
                     server.send('exit');
                 }
             } catch (serverErr) {
-                //忽略
+                MCSERVER.error('批量开启某服务器失败:', serverErr);
                 continue;
             }
         }

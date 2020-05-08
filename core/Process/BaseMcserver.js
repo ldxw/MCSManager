@@ -10,8 +10,9 @@ const path = require('path')
 
 const properties = require("properties");
 const fs = require('fs');
+const Docker = require('dockerode');
 
-var CODE_CONSOLE = MCSERVER.localProperty.console_encode;
+const CODE_CONSOLE = MCSERVER.localProperty.console_encode;
 
 class ServerProcess extends EventEmitter {
 
@@ -25,7 +26,7 @@ class ServerProcess extends EventEmitter {
 
     }
 
-    //自定义高级参数启动
+    // 自定义命令启动方式
     customCommandStart() {
 
         //暂时使用 MCSMERVER.log 目前已弃用，下版本 log4js
@@ -37,7 +38,7 @@ class ServerProcess extends EventEmitter {
         MCSERVER.log('-------------------------------');
 
         if (!this.dataModel.highCommande || this.dataModel.highCommande.trim().length <= 0)
-            new Error("自定义参数非法,无法启动服务端");
+            throw new Error("自定义参数非法,无法启动服务端");
         let commandArray = this.dataModel.highCommande.split(" ");
         let javaPath = commandArray.shift();
         //过滤
@@ -51,7 +52,7 @@ class ServerProcess extends EventEmitter {
             childProcess.spawn(javaPath, parList, this.ProcessConfig);
     }
 
-    //普通启动
+    // 标准 Java 程序启动方式
     templateStart(onlyCommandString = false) {
         let tmpAddList = [];
         let tmpShouldList = [];
@@ -87,64 +88,150 @@ class ServerProcess extends EventEmitter {
         this.process = childProcess.spawn(this.dataModel.java, parList, this.ProcessConfig);
     }
 
-    //使用 Docker 命令启动
-    dockerStart() {
-        //命令模板与准备数据
-        let dockerCommand = this.dataModel.dockerConfig.dockerCommand;
-        // let processCwd = process.cwd();
+    //使用 Docker API 启动进程
+    async dockerStart() {
+        // 命令模板与准备数据
         let stdCwd = path.resolve(this.dataModel.cwd).replace(/\\/igm, "/");
 
-        //命令模板渲染
+        // 采用 Docker API 进行启动与监控
+        // 启动命令解析
+        let startCommande = "";
         if (this.dataModel.highCommande.trim() != "")
-            dockerCommand = dockerCommand.replace(/\$\{commande\}/igm, this.dataModel.highCommande);
+            startCommande = this.dataModel.highCommande;
         else
-            dockerCommand = dockerCommand.replace(/\$\{commande\}/igm, this.templateStart(true));
-        //加入镜像名
-        dockerCommand = dockerCommand.replace(/\$\{imagename\}/igm,
-            this.dataModel.dockerConfig.dockerImageName);
-        //加入端口限制
-        dockerCommand = dockerCommand.replace(/\$\{ports\}/igm,
-            this.dataModel.dockerConfig.dockerPorts ? "-p " + this.dataModel.dockerConfig.dockerPorts : "");
-        //加入服务端绝对路径
-        dockerCommand = dockerCommand.replace(/\$\{serverpath\}/igm,
-            tools.CharReplaceTemp(stdCwd, " "));
-        //加入最大内存限制
-        dockerCommand = dockerCommand.replace(/\$\{xmx\}/igm,
-            this.dataModel.dockerConfig.dockerXmx ? "-m " + this.dataModel.dockerConfig.dockerXmx : "");
-
-        //格式替换
-        let dockerCommandPart = dockerCommand.replace(/  /igm, " ").split(" ");
-
-        //分割的参数全部渲染
-        // for (let k in dockerCommandPart) { }
-
-        let execDockerCommande = [];
-        for (let i = 1; i < dockerCommandPart.length; i++) {
-            if (dockerCommandPart[i].trim() != "") execDockerCommande.push(tools.TempReplaceChar(dockerCommandPart[i], " "));
+            startCommande = this.templateStart(true);
+        const startCommandeArray = startCommande.split(" ");
+        // 端口解析
+        const protocol = "tcp";
+        let portmap = this.dataModel.dockerConfig.dockerPorts;
+        portmap = portmap.split(":");
+        if (portmap.length > 2) {
+            throw new Error("不支持的多端口操作方法，参数配置端口数量错误。");
         }
-
-        //暂时使用 MCSMERVER.log 目前已弃用，下版本 log4js
-        MCSERVER.infoLog('Minecraft Server start (Docker)', this.dataModel.name);
-        MCSERVER.log('端实例 [' + this.dataModel.name + '] 启动 Docker 容器:');
+        // 绑定内部暴露端口
+        const ExposedPortsObj = {};
+        // 绑定内部暴露端口与其对应的宿主机端口
+        const PortBindingsObj = {};
+        if (portmap.length == 2) {
+            // 一个端口的配置项目
+            ExposedPortsObj[portmap[0] + "/" + protocol] = {};
+            PortBindingsObj[portmap[0] + "/" + protocol] = [{
+                HostPort: portmap[1] + ""
+            }];
+        }
+        // 输出启动消息
+        MCSERVER.log('实例 [', this.dataModel.name, '] 正在启动...');
         MCSERVER.log('-------------------------------');
-        MCSERVER.log('启动命令: ' + dockerCommandPart[0] + " " + execDockerCommande.join(" "));
-        MCSERVER.log('根:' + stdCwd);
+        MCSERVER.log("正在使用虚拟化技术启动进程");
+        MCSERVER.log("命令:", startCommandeArray.join(" "));
+        MCSERVER.log("开放端口:", portmap.join("->"));
+        MCSERVER.log("工作目录:", stdCwd);
         MCSERVER.log('-------------------------------');
 
-        this.process = childProcess.spawn(dockerCommandPart[0], execDockerCommande, this.ProcessConfig);
+        // 模拟一个正常的 Process
+        this.process = new EventEmitter();
+        const process = this.process;
+        const self = this;
 
-        this.send(this.dataModel.highCommande || this.templateStart(true));
+        // 基于镜像启动虚拟化容器
+        const docker = new Docker();
+        let auxContainer = null;
+        auxContainer = await docker.createContainer({
+            Image: this.dataModel.dockerConfig.dockerImageName,
+            AttachStdin: true,
+            AttachStdout: true,
+            AttachStderr: true,
+            Tty: true,
+            Cmd: startCommandeArray,
+            OpenStdin: true,
+            StdinOnce: false,
+            ExposedPorts: ExposedPortsObj,
+            HostConfig: {
+                Binds: [
+                    stdCwd + ":/mcsd/"
+                ],
+                Memory: this.dataModel.dockerConfig.dockerXmx * 1024 * 1024 * 1024,
+                PortBindings: PortBindingsObj
+            }
+        });
+        try {
+            // 尝试启动容器
+            await auxContainer.start();
+        } catch (err) {
+            this.stop();
+            this.emit('exit', 0);
+            throw new Error("实例进程启动失败，建议检查启动参数与设置");
+        }
+        // 链接容器的输入输出流
+        auxContainer.attach({
+            stream: true,
+            stdin: true,
+            stdout: true
+        }, (err, stream) => {
+            if (err) throw err;
+            // 赋值进程容器
+            process.dockerContainer = auxContainer;
+            // 模拟 pid
+            process.pid = auxContainer.id;
+            // 对接普通进程的输入输出流
+            process.stdin = stream;
+            process.stdout = stream;
+            process.stderr = null;
+            // 模拟进程杀死功能
+            process.kill = (() => {
+                auxContainer.kill().then(() => {
+                    auxContainer.remove().then(() => {
+                        MCSERVER.log('实例', '[', self.dataModel.name, ']', '容器已强制移除');
+                    });
+                });
+            });
+            // 容器工作完毕退出事件
+            auxContainer.wait(() => {
+                self.emit('exit', 0);
+                self.stop();
+                auxContainer.remove();
+            });
+            // 容器流错误事件传递
+            stream.on('error', (err) => {
+                MCSERVER.error('服务器运行时异常,建议检查配置与环境', err);
+                self.printlnStdin(['Error:', err.name, '\n Error Message:', err.message, '\n 进程 PID:', self.process.pid || "启动失败，无法获取进程。"]);
+                self.stop();
+                self.emit('error', err);
+            });
+            // 判断启动是否成功
+            if (!process.pid) {
+                MCSERVER.error('服务端进程启动失败，建议检查启动命令与参数是否正确');
+                self.stop();
+                auxContainer.remove();
+                throw new Error('服务端进程启动失败，建议检查启动命令与参数是否正确');
+            }
+
+            // 开启启动状态
+            self._run = true;
+            self._loading = false;
+            self.dataModel.lastDate = new Date().toLocaleString();
+
+            // 输出事件的传递
+            process.stdout.on('data', (data) => self.emit('console', iconv.decode(data, self.dataModel.oe)));
+
+            // 产生事件开启
+            self.emit('open', self);
+
+            // 输出开服资料
+            self.printlnCommandLine('服务端 ' + self.dataModel.name + " 执行开启命令.");
+        });
     }
 
-    //统一服务端开启
+    // 统一服务端开启入口
+    // 不论是通过哪种方式启动，必须从这个入口进入，再根据不同配置进行分支
     start() {
-        //服务端时间权限判断
+        // 服务端时间权限判断
         let timeResult = this.isDealLineDate();
         if (timeResult) {
             throw new Error('服务端于 ' + this.dataModel.timeLimitDate + ' 时间已到期，拒绝启动，请咨询管理员。');
         }
 
-        //防止重复启动
+        // 防止重复启动
         if (this._run || this._loading) throw new Error('服务端进程在运行或正在加载..');
 
         this._loading = true;
@@ -155,9 +242,9 @@ class ServerProcess extends EventEmitter {
         }
         jarPath = jarPath.replace(/\/\//igm, '/');
 
-        //选择启动方式 自定义命令与配置启动
+        // 选择启动方式 自定义命令与配置启动
         if (!this.dataModel.highCommande) {
-            //只在非自定义模式下检查参数
+            // 只在非自定义模式下检查参数
             if (!fs.existsSync(this.dataModel.cwd)) {
                 this.stop();
                 throw new Error('服务端根目录 "' + jarPath + '" 不存在!');
@@ -172,8 +259,8 @@ class ServerProcess extends EventEmitter {
             }
 
         } else {
-            //自定义模式检查
-            //检查是否准许自定义命令
+            // 自定义模式检查
+            // 检查是否准许自定义命令
             if (!MCSERVER.localProperty.customize_commande) {
                 this.stop();
                 throw new Error('操作禁止！管理员禁止服务器使用自定义命令！');
@@ -187,10 +274,18 @@ class ServerProcess extends EventEmitter {
 
         try {
             if (this.dataModel.dockerConfig.isDocker) {
-                //Docker 启动
-                this.dockerStart();
+                // Docker 启动，异步函数
+                // 选用虚拟化技术启动后，将不再执行下面代码逻辑，由专属的进程启动方式启动。
+                this.dockerStart().then(undefined, (error) => {
+                    // Docker 启动时异常处理
+                    MCSERVER.error('此服务器启动时异常,具体错误信息:', error);
+                    this.printlnCommandLine("进程实例启动时失败，建议检查配置文件与启动参数");
+                    this.stop();
+                });
+                // 阻止继续运行下去
+                return true;
             } else {
-                //确定启动方式
+                // 确定是自定义命令启动还是模板正常方式启动。
                 this.dataModel.highCommande ? this.customCommandStart() : this.templateStart();
             }
         } catch (err) {
@@ -198,10 +293,12 @@ class ServerProcess extends EventEmitter {
             throw new Error('进程启动时异常:' + err.name + ":" + err.message);
         }
 
+        // 设置启动状态
         this._run = true;
         this._loading = false;
         this.dataModel.lastDate = new Date().toLocaleString();
 
+        // 进程事件监听
         this.process.on('error', (err) => {
             MCSERVER.error('服务器运行时异常,建议检查配置与环境', err);
             this.printlnStdin(['Error:', err.name, '\n Error Message:', err.message, '\n 进程 PID:', this.process.pid || "启动失败，无法获取进程。"]);
@@ -209,8 +306,9 @@ class ServerProcess extends EventEmitter {
             this.emit('error', err);
         });
 
+        // 进程启动成功确认
         if (!this.process.pid) {
-            MCSERVER.error('this.process.pid is null', this.process.pid);
+            MCSERVER.error('服务端进程启动失败，建议检查启动命令与参数是否正确，pid:', this.process.pid);
             this.stop();
             delete this.process;
             throw new Error('服务端进程启动失败，建议检查启动命令与参数是否正确');
@@ -227,31 +325,44 @@ class ServerProcess extends EventEmitter {
         // 产生事件开启
         this.emit('open', this);
 
-        // 输出开服资料
-        this.printlnCommandLine('服务端 ' + this.dataModel.name + " 执行开启命令. PID:" + this.process.pid);
+        // 输出开服信息
+        this.printlnCommandLine('服务端 ' + this.dataModel.name + " 执行开启命令.");
         return true;
     }
 
+    // 发送指令
     send(command) {
         if (this._run) {
-            this.process.stdin.write(iconv.encode(command, this.dataModel.ie));
-            this.process.stdin.write('\n');
+            if (this.process.dockerContainer != null) {
+                this.process.stdin.write(iconv.encode(command, this.dataModel.ie) + '\n');
+            } else {
+                this.process.stdin.write(iconv.encode(command, this.dataModel.ie));
+                this.process.stdin.write('\n');
+            }
             return true;
         }
         return true;
     }
 
+    // 重启实例
     restart() {
         if (this._run == true) {
             this.send('stop');
             this.send('end');
             this.send('exit');
 
-            //开始计时重启
+            // 开始计时重启
             let timeCount = 0;
             let timesCan = setInterval(() => {
                 if (this._run == false) {
-                    setTimeout(() => this.start(), 1000);
+                    // 服务器关闭时 3 秒后立即重启
+                    setTimeout(() => {
+                        try {
+                            this.start();
+                        } catch (err) {
+                            MCSERVER.error('服务器重启失败:', err);
+                        }
+                    }, 3000);
                     clearInterval(timesCan);
                 }
                 //60s 内服务器依然没有关闭，代表出现问题
@@ -266,6 +377,10 @@ class ServerProcess extends EventEmitter {
         }
     }
 
+    // 这并不是推荐的直接使用方式；
+    // stop 方法只适用于本类调用，因为使用此方法不管是否成功停止，都必将进入停止状态；
+    // 这样即有可能面板显示已经停止，但进程还在运行的情况；
+    // 最好的做法是通过命令来结束。
     stop() {
         this._run = false;
         this._loading = false;
@@ -275,6 +390,7 @@ class ServerProcess extends EventEmitter {
         this.send('exit');
     }
 
+    // 杀死进程，若是 Docker 进程则是移除容器
     kill() {
         if (this._run) {
             this.process.kill('SIGKILL');
@@ -284,6 +400,7 @@ class ServerProcess extends EventEmitter {
         return false;
     }
 
+    // 是否运行中
     isRun() {
         return this._run;
     }
@@ -292,15 +409,15 @@ class ServerProcess extends EventEmitter {
     printlnStdin(line) {
         let str = ['[MCSMANAGER] [', tools.getFullTime(), ']:',
             line,
-            "\n"
+            "\r\n"
         ].join(" ");
         this.emit('console', str);
     }
 
     printlnCommandLine(line) {
-        this.emit('console', "[MCSMANAGER] -------------------------------------------------------------- \n");
+        this.emit('console', "[MCSMANAGER] -------------------------------------------------------------- \r\n");
         this.printlnStdin(line);
-        this.emit('console', "[MCSMANAGER] -------------------------------------------------------------- \n");
+        this.emit('console', "[MCSMANAGER] -------------------------------------------------------------- \r\n");
     }
 
     isDealLineDate() {

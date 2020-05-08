@@ -1,12 +1,13 @@
 ![doc_logo.png](/public/common/doc_logo.png)
   
-[![Status](https://img.shields.io/badge/npm-v5.0.0-blue.svg)](https://www.npmjs.com/)
-[![Status](https://img.shields.io/badge/node-v8.0-blue.svg)](https://nodejs.org/en/download/)
+[![Status](https://img.shields.io/badge/npm-v6.9.0-blue.svg)](https://www.npmjs.com/)
+[![Status](https://img.shields.io/badge/node-v10.16.0-blue.svg)](https://nodejs.org/en/download/)
 [![Status](https://travis-ci.org/Suwings/MCSManager.svg?branch=master)](https://travis-ci.org/Suwings/MCSManager)
 [![Status](https://img.shields.io/badge/License-MIT-red.svg)](https://github.com/Suwings/MCSManager)
 
 
 简单，易用，多实例，轻量级的 Minecraft Server 控制面板
+
 
 
 [中文简体](https://github.com/Suwings/MCSManager) | [中文繁體](README-traditional.md)
@@ -22,12 +23,18 @@
 
 控制面板可运行在 Windows 与 Linux 平台，无需数据库与任何系统配置，只需安装 node 环境即可快速运行，属于轻量级的 Minecraft 服务端控制面板。
 
+![main_theme.png](/public/common/main_theme.png)
+
 <br />
 
 运行环境
 -----------
 
-只需 Node 8.0 以上
+必须 `Node 10.0.0` 以上，推荐 `10.16.0` 以上，无需数据库和更改任何系统配置，开箱即可运行。
+
+**警告：**
+
+最新发行版的 Nodejs `14.0.0` 版本请勿使用，此版本面板暂不兼容。
 
 <br />
 
@@ -41,9 +48,35 @@
 <br />
 
 
+常见问题
+-----------
+| 问题 | 详情 |
+| ------------------------ | --------------------------------------------------------------------------------------------- |
+无法正常安装面板？| [参考教程](https://github.com/Suwings/MCSManager/wiki/Linux-%E4%B8%8B%E5%AE%89%E8%A3%85%E4%B8%8E%E4%BD%BF%E7%94%A8%E8%AF%A6%E8%A7%A3)
+Linux 下面板如何后台运行？ | [参考方法](https://github.com/Suwings/MCSManager/wiki/Linux-%E4%B8%8B%E5%AE%89%E8%A3%85%E4%B8%8E%E4%BD%BF%E7%94%A8%E8%AF%A6%E8%A7%A3#%E4%BF%9D%E6%8C%81%E5%90%8E%E5%8F%B0%E8%BF%90%E8%A1%8C)
+使用面板开启 `Bedrock Server` 端 | [参考教程](https://github.com/Suwings/MCSManager/wiki/%E4%BD%BF%E7%94%A8%E9%9D%A2%E6%9D%BF%E5%BC%80%E5%90%AF-Bedrock_server-%E6%9C%8D%E5%8A%A1%E7%AB%AF)
+面板管理员的默认账号和密码是什么？ | 账号 `#master` 密码 `123456`
+面板如何正确关闭？ | `Ctrl+C`
+配置文件是什么？ | `property.js` 文件
+如何修改面板默认端口？ | `property.js` 文件
+如何配置反向代理？ | [Apache 配置参考教程](https://github.com/Suwings/MCSManager/wiki/%E4%BD%BF%E7%94%A8-Apache2.4-%E8%BF%9B%E8%A1%8C%E5%8F%8D%E5%90%91%E4%BB%A3%E7%90%86)
+配好反向代理却无法使用？ | [Apache](https://github.com/Suwings/MCSManager/issues/34) [Nginx](https://github.com/Suwings/MCSManager/issues/22) [宝塔上的Nginx](https://github.com/Suwings/MCSManager/wiki/%E5%85%B3%E4%BA%8E%E5%AE%9D%E5%A1%94%E9%9D%A2%E6%9D%BF%E7%9A%84-Nginx-%E5%8F%8D%E5%90%91%E4%BB%A3%E7%90%86%E4%BB%A5%E5%8F%8ASSL%E8%AF%81%E4%B9%A6%E9%83%A8%E7%BD%B2)
+FTP 无法使用？ | [跳转](https://github.com/Suwings/MCSManager#ftp-%E6%9C%8D%E5%8A%A1)
+反代后文件管理偶尔失效? | 请检查反代机器的防火墙是否拦截
+我能修改登录页面吗？| [修改教程](https://github.com/Suwings/MCSManager/wiki/%E8%87%AA%E5%AE%9A%E4%B9%89%E4%BF%AE%E6%94%B9%E7%99%BB%E5%BD%95%E9%A1%B5%E9%9D%A2)
+其他常见问题 | [查看 Wiki](https://github.com/Suwings/MCSManager/wiki)
+
+
+<br />
+
+
+
+
 运行在 Windows 
 -----------
-对于 Windows 系统，已整合成直接运行版本，下载即可运行:
+对于 Windows 系统，已整合成直接运行版本，下载即可运行(建议使用管理员权限运行):
+
+
 
 http://mcsm.suwings.top/ (官方站点)
 
@@ -58,9 +91,9 @@ http://mcsm.suwings.top/ (官方站点)
 
 ```bash
 # 安装 Node 版本控制工具(若没有 wget,请安装它)
-wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
+wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.2/install.sh | bash
 # 关闭终端重新打开再执行以下命令
-# 项目支持 8.0 版本以上，这里使用11版本
+# 项目支持 10.0 版本以上，这里使用11版本
 nvm install 11.0.0
 nvm use 11.0.0
 # 克隆仓库
@@ -75,10 +108,9 @@ npm start
 
 ```
 
-> 如果您还是无法正常运行，请 [单击这里](https://github.com/Suwings/MCSManager/wiki/Linux-%E4%B8%8B%E5%AE%89%E8%A3%85%E4%B8%8E%E4%BD%BF%E7%94%A8%E8%AF%A6%E8%A7%A3)
-
-- 项目属于**开箱即用**的面板，并未提供服务注册功能，当终端关闭时，面板也会跟随终端关闭。
-- 可以使用 **screen** 软件来让面板持续在后台运行。
+> 详细安装以及使用教程，请 [单击这里](https://github.com/Suwings/MCSManager/wiki/Linux-%E4%B8%8B%E5%AE%89%E8%A3%85%E4%B8%8E%E4%BD%BF%E7%94%A8%E8%AF%A6%E8%A7%A3)  
+- 项目属于**开箱即用**的面板，如果不使用 **screen** 进行后台常驻.当你断开了SSH后,面板也会随之关闭.
+- **screen** 需要单独安装,执行安装指令"yum -y install screen"或"apt -y install screen"
 
 <br />
 
@@ -96,28 +128,6 @@ npm start
 
 <br />
 
-
-Wiki
----------
-我们有些常见问题与细节上的问题，已经把它们都整合在 `Wiki` 里面。
-
-欢迎你阅读 [Wiki](https://github.com/Suwings/MCSManager/wiki) 与提出建议。
-
-<br />
-
-
-常见问题
------------
-| 问题 | 详情 |
-| ------------------------ | --------------------------------------------------------------------------------------------- |
-使用面板开启 `Bedrock Server` 端 | [详情页](https://github.com/Suwings/MCSManager/issues/86)
-面板管理员的默认账号和密码是什么？ | [详情页](https://github.com/Suwings/MCSManager/issues/75)
-面板如何正确关闭？ | Ctrl+C
-配置文件是什么？ | property.js
-配好反向代理却无法使用？ | [Apache](https://github.com/Suwings/MCSManager/issues/34) [Nginx](https://github.com/Suwings/MCSManager/issues/22)
-FTP 无法使用？ | [跳转](https://github.com/Suwings/MCSManager#ftp-%E6%9C%8D%E5%8A%A1)
-
-<br />
 
 项目目录结构
 -----------
@@ -168,7 +178,10 @@ FTP 无法使用？ | [跳转](https://github.com/Suwings/MCSManager#ftp-%E6%9C%
 
 FTP 服务
 -----------
-FTP 模块采用被动传输模式，传输命令默认使用 `10022`(可更改) 端口；
+
+FTP 模块默认为关闭状态.开启选项在 property.js 文件中 但不建议使用
+
+采用被动传输模式，传输命令默认使用 `10022`(可更改) 端口；
 
 传输数据需要一个端口段，默认是 `20010` - `20100`；
 

@@ -10,6 +10,12 @@
 		api: 'genuser/home', //通过 Webscoket 后端请求的API,null为不请求,
 		select: false
 	}, {
+		class: 'glyphicon-th-list', //html元素 类
+		name: '文件管理', //菜单名
+		link: './template/filemanager.html', //单击时跳转目的
+		api: 'genuser/home', //通过 Webscoket 后端请求的API,null为不请求,
+		select: false
+	}, {
 		class: 'glyphicon-equalizer',
 		name: '技术支持',
 		link: './template/gen_about.html',
@@ -24,7 +30,7 @@
 		name: '监控数据中心',
 		link: './template/center.html',
 		api: 'center/show',
-		select: true
+		select: false
 	}, {
 		class: 'glyphicon-tasks',
 		name: '服务端管理',
@@ -38,8 +44,14 @@
 		api: 'userset/update',
 		select: false
 	}, {
+		class: 'glyphicon-th-list',
+		name: '文件管理',
+		link: './template/filemanager.html',
+		api: 'genuser/home',
+		select: false
+	}, {
 		class: 'glyphicon-floppy-open',
-		name: '服务与支持',
+		name: '服务',
 		link: './template/feelback.html',
 		api: null,
 		select: false

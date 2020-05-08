@@ -6,13 +6,8 @@ const response = require('../../helper/Response');
 const serverModel = require('../../model/ServerModel');
 const userModel = require('../../model/UserModel');
 const permssion = require('../../helper/Permission');
-const observerModel = require('../../model/ObserverModel');
-const {
-    RecordCommand
-} = require('../../helper/RecordCommand');
-const EventEmitter = require('events');
+const { LogHistory } = require('../../helper/LogHistory');
 
-const BASE_RECORD_DIR = "./server/record_tmp/";
 
 //日志缓存记录器
 MCSERVER.consoleLog = {};
@@ -50,12 +45,14 @@ serverModel.ServerManager().on('exit', (data) => {
     }
     //输出到标准输出
     server.printlnCommandLine('服务端 ' + data.serverName + " 关闭.");
-
+    // 告知前端已关闭
     selectWebsocket(data.serverName,
         (socket) => response.wsMsgWindow(socket.ws, '服务器关闭'));
-
     // 传递服务器关闭事件
     serverModel.ServerManager().emit("exit_next", data);
+    // 历史记录类释放
+    serverModel.ServerManager().getServer(data.serverName).logHistory.delete();
+    serverModel.ServerManager().getServer(data.serverName).logHistory = null;
 })
 
 //服务器开启
@@ -65,12 +62,16 @@ serverModel.ServerManager().on('open', (data) => {
     serverModel.ServerManager().emit("open_next", {
         serverName: data.serverName
     });
+
+    // 为此服务端创建历史记录类
+    const serverInstance = serverModel.ServerManager().getServer(data.serverName);
+    serverInstance.logHistory = new LogHistory(data.serverName);
+
     // 仅发送给正在监听控制台的用户
     selectWebsocket(data.serverName, (socket) => {
         response.wsMsgWindow(socket.ws, '服务器运行');
         // 传递服务器开启事件
     });
-
 })
 
 
@@ -83,12 +84,12 @@ WebSocketObserver().listener('server/console/ws', (data) => {
     if (permssion.isCanServer(userName, serverName)) {
         MCSERVER.log('[' + serverName + '] >>> 准许用户 ' + userName + ' 控制台监听');
 
-        //设置历史指针
-        data.WsSession['record_start'] = new RecordCommand(BASE_RECORD_DIR + serverName + ".log").recordLength() - 1;
-
-        //设置监听终端
+        // 设置监听终端
         data.WsSession['console'] = serverName;
-        // response.wsMsgWindow(data.ws, '监听 [' + serverName + '] 终端');
+
+        // 重置用户历史指针
+        const instanceLogHistory = serverModel.ServerManager().getServer(serverName).logHistory;
+        if (instanceLogHistory) instanceLogHistory.setPoint(userName, 0);
         return;
     }
 
@@ -108,39 +109,41 @@ WebSocketObserver().listener('server/console/remove', (data) => {
 });
 
 
-//缓冲区定时发送频率，默认限制两秒刷新缓冲区
-let consoleBuffer = {};
+// 缓冲区定时发送频率，默认限制两秒刷新缓冲区
+const consoleBuffer = {};
 setInterval(() => {
     for (const serverName in consoleBuffer) {
-        let data = consoleBuffer[serverName];
-        //忽略极小体积数据
-        if (!data || data.length <= 1) continue;
-        //忽略极大体积数据
-        const MAX_OUT_LEN = 1024 * (MCSERVER.localProperty.console_max_out || 28);
-        // 保留被截断消息的末尾部分
-        const KEEP_TAIL_LEN = 1024;
-        if (data.length > MAX_OUT_LEN) {
-            let real_tail_len = Math.min(KEEP_TAIL_LEN, data.length - MAX_OUT_LEN);
-            data = data.slice(0, MAX_OUT_LEN) +
-                "\n - 更多的此刻输出已经忽略...\n" +
-                data.slice(data.length - real_tail_len, data.length);
-        }
-        // 替换元素
-        let htmlData = data.replace(/\n/gim, '[_b_r_]');
-        //刷新每个服务器的缓冲数据
-        selectWebsocket(serverName, (socket) => {
-            socket.send({
-                ws: socket.ws,
-                resK: 'server/console/ws',
-                resV: {},
-                body: htmlData
+        try {
+            let data = consoleBuffer[serverName];
+            const server = serverModel.ServerManager().getServer(serverName);
+            // 此实例可能已经失去联系，可能被删除，可能被改名
+            if (!server || !data) {
+                consoleBuffer[serverName] = undefined;
+                delete consoleBuffer[serverName];
+                continue;
+            }
+            const logHistory = server.logHistory;
+            if (logHistory) logHistory.writeLine(data)
+            // 发送前端的标准，前端只识别 \r\n ，不可是\n
+            data = data.replace(/\n/gim, '\r\n');
+            data = data.replace(/\r\r\n/gim, '\r\n');
+            //刷新每个服务器的缓冲数据
+            selectWebsocket(serverName, (socket) => {
+                socket.send({
+                    ws: socket.ws,
+                    resK: 'server/console/ws',
+                    resV: {},
+                    body: data
+                });
             });
-        });
-        // 压入原始数据的历史记录
-        new RecordCommand(BASE_RECORD_DIR + serverName + ".log").writeRecord(data);
-        // 释放内存
-        delete consoleBuffer[serverName]
-        consoleBuffer[serverName] = "";
+            // 释放内存并删除键
+            consoleBuffer[serverName] = undefined;
+            delete consoleBuffer[serverName];
+        } catch (error) {
+            MCSERVER.log('实例', serverName, '日志周期性广播任务错误:');
+            console.log(error);
+            continue;
+        }
     }
 }, MCSERVER.localProperty.console_send_times);
 //控制台标准输出流

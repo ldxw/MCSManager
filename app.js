@@ -1,10 +1,10 @@
 //运行时环境检测
 try {
     let versionNum = parseInt(process.version.replace(/v/igm, "").split(".")[0]);
-    //尽管我们建议最低版本为 v8 版本
-    if (versionNum < 8) {
+    //尽管我们建议最低版本为 v10 版本
+    if (versionNum < 10) {
         console.log("[ WARN ] 您的 Node 运行环境版本似乎低于我们要求的版本.");
-        console.log("[ WARN ] 可能会出现未知情况,建议您更新 Node 版本 (>=8.0.0)");
+        console.log("[ WARN ] 可能会出现未知情况,建议您更新 Node 版本 (>=10.0.0)");
     }
 } catch (err) {
     //忽略任何版本检测导致的错误
@@ -189,7 +189,12 @@ process.on("uncaughtException", function (err) {
     //是否出过错误,本变量用于自动化测试
     MCSERVER.allError++;
     //打印出错误
-    MCSERVER.error('UncaughtException 机制错误报告:', err);
+    MCSERVER.error('错误报告:', err);
+});
+
+process.on('unhandledRejection', (reason, p) => {
+    MCSERVER.infoLog('错误报告:');
+    console.log('Unhandled Rejection at: Promise', p, 'reason:', reason);
 });
 
 //初始化目录结构环境
@@ -236,18 +241,18 @@ app.use(['/fs/mkdir', '/fs/rm', '/fs/patse', '/fs/cp', '/fs/rename', '/fs/ls'], 
 app.use('/fs_auth', require('./onlinefs/controller/auth'));
 app.use('/fs', require('./onlinefs/controller/function'));
 
-//初始化模块
+//初始化各个模块
 (function initializationProm() {
 
+    MCSERVER.infoLog('Module', '正在初始化用户管理模块');
     counter.init();
     UserModel.userCenter().initUser();
-    MCSERVER.infoLog('Module', '初始化 UserManager Module  ');
 
+    MCSERVER.infoLog('Module', '正在初始化服务端管理模块');
     ServerModel.ServerManager().loadALLMinecraftServer();
-    MCSERVER.infoLog('Module', '初始化 ServerManager Module ');
 
+    MCSERVER.infoLog('Module', '正在初始化计划任务模块');
     Schedule.init();
-    MCSERVER.infoLog('Module', '初始化 Schedule Module');
 
     var host = MCSERVER.localProperty.http_ip;
     var port = MCSERVER.localProperty.http_port;

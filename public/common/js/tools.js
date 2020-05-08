@@ -29,7 +29,7 @@
 				return;
 			}
 			_run = true;
-			msgObj = _queue.shift();
+			var msgObj = _queue.shift();
 
 			showMsgWindow(msgObj.msg, function () {
 				//下一个
@@ -120,21 +120,81 @@
 
 	//Minecraft 服务器输出基本颜色
 	TOOLS.encodeConsoleColor = function (text) {
-		text = text.replace(/([A-Za-z _&;-\\.]{1,}:)/igm, "<span style='color:#ffa700;'>$1</span>");
-		text = text.replace(/\[/igm, "<span style='color:#10e616;'>[</span>");
-		text = text.replace(/\]/igm, "<span style='color:#10e616;'>]</span>");
-		text = text.replace(/INFO/gm, "<span style='color:#03ea0a;'>INFO</span>");
-		text = text.replace(/(\d{2,}:\d{2,}:\d{2,})/gm, "<span style='color:#017EBC;'>$1</span>");
+		var term = MCSERVER.term;
+		if (!term) term = {};
+		term.TERM_NULL = "\x1B[0m";
+		term.TERM_TEXT_RED = "\x1B[1;0;31m";
+		term.TERM_TEXT_GREEN = "\x1B[1;0;32m";
+		term.TERM_TEXT_YELLOW = "\x1B[1;0;33m";
+		term.TERM_TEXT_BLUE = "\x1B[1;1;34m";
+		term.TERM_TEXT_FUCHSIA = "\x1B[1;0;35m";
+		term.TERM_TEXT_CYAN = "\x1B[1;0;36m";
+		term.TERM_TEXT_WHITE = "\x1B[1;0;37m";
+		term.TERM_TEXT_B = "\x1B[1m";
 
-		RegExpStringArr = [
+		// 基本颜色
+		text = text.replace(/([A-Za-z _§&;\-\\.]{1,}:)/igm, "§6$1§r");
+		text = text.replace(/INFO/gm, term.TERM_TEXT_GREEN + "INFO" + term.TERM_NULL);
+		text = text.replace(/(\d{2,}:\d{2,}:\d{2,})/gm, term.TERM_TEXT_CYAN + "$1" + term.TERM_NULL);
+
+		// Minecraft 原生颜色替代解析
+		text = text.replace(/§0/gm, term.TERM_TEXT_WHITE);
+		text = text.replace(/§1/gm, term.TERM_TEXT_CYAN);
+		text = text.replace(/§2/gm, term.TERM_TEXT_GREEN);
+		text = text.replace(/§3/gm, term.TERM_TEXT_CYAN);
+		text = text.replace(/§4/gm, term.TERM_TEXT_RED);
+		text = text.replace(/§5/gm, term.TERM_TEXT_FUCHSIA);
+		text = text.replace(/§6/gm, term.TERM_TEXT_YELLOW);
+		text = text.replace(/§7/gm, term.TERM_TEXT_WHITE);
+		text = text.replace(/§8/gm, term.TERM_TEXT_WHITE);
+		text = text.replace(/§9/gm, term.TERM_TEXT_CYAN);
+		text = text.replace(/§a/gm, term.TERM_TEXT_GREEN);
+		text = text.replace(/§b/gm, term.TERM_TEXT_CYAN);
+		text = text.replace(/§c/gm, term.TERM_TEXT_RED);
+		text = text.replace(/§d/gm, term.TERM_TEXT_RED);
+		text = text.replace(/§e/gm, term.TERM_TEXT_YELLOW);
+		text = text.replace(/§f/gm, term.TERM_TEXT_WHITE);
+		// 基于&符号
+		text = text.replace(/&0/gm, term.TERM_TEXT_WHITE);
+		text = text.replace(/&1/gm, term.TERM_TEXT_CYAN);
+		text = text.replace(/&2/gm, term.TERM_TEXT_GREEN);
+		text = text.replace(/&3/gm, term.TERM_TEXT_CYAN);
+		text = text.replace(/&4/gm, term.TERM_TEXT_RED);
+		text = text.replace(/&5/gm, term.TERM_TEXT_FUCHSIA);
+		text = text.replace(/&6/gm, term.TERM_TEXT_YELLOW);
+		text = text.replace(/&7/gm, term.TERM_TEXT_WHITE);
+		text = text.replace(/&8/gm, term.TERM_TEXT_WHITE);
+		text = text.replace(/&9/gm, term.TERM_TEXT_CYAN);
+		text = text.replace(/&a/gm, term.TERM_TEXT_GREEN);
+		text = text.replace(/&b/gm, term.TERM_TEXT_CYAN);
+		text = text.replace(/&c/gm, term.TERM_TEXT_RED);
+		text = text.replace(/&d/gm, term.TERM_TEXT_RED);
+		text = text.replace(/&e/gm, term.TERM_TEXT_YELLOW);
+		text = text.replace(/&f/gm, term.TERM_TEXT_WHITE);
+		// 字体格式
+		text = text.replace(/§r/gm, term.TERM_NULL);
+		text = text.replace(/&r/gm, term.TERM_NULL);
+		text = text.replace(/§k/gm, "\x1B[1m");
+		text = text.replace(/&k/gm, "\x1B[1m");
+		text = text.replace(/§l/gm, "\x1B[1m");
+		text = text.replace(/&l/gm, "\x1B[1m");
+		text = text.replace(/§m/gm, "\x1B[2m");
+		text = text.replace(/&m/gm, "\x1B[2m");
+		text = text.replace(/§n/gm, "\x1B[4m");
+		text = text.replace(/&n/gm, "\x1B[4m");
+		text = text.replace(/§o/gm, "\x1B[3m");
+		text = text.replace(/&o/gm, "\x1B[3m");
+
+		// 特殊文本替换
+		var RegExpStringArr = [
 			//蓝色
 			["Unknown command", "Loading libraries, please wait...",
 				"Loading", "Loaded", "\\d{1,3}%", "true", "false",
 				"plugin.yml"
 			],
 			//绿色
-			["/help", "left the game", "Enabling",
-				"Saving chunks for level", "--------", "UUID", "Starting minecraft server version",
+			["/help", "left the game", "Enabling", "Server thread",
+				"Saving chunks for level", "----", "UUID", "Starting minecraft server version",
 				"Timings Reset",
 				"\\(", "\\)", "\\{", "\\}", "&lt;", "&gt;",
 				"Preparing start region for level"
@@ -146,8 +206,7 @@
 				"Starting Minecraft server on",
 				"world_the_end",
 				"world_nether",
-				"Usage",
-				"Server thread", "Done", "MCSMANAGER"
+				"Done", "MCSMANAGER"
 			]
 		]
 		for (var k in RegExpStringArr) {
@@ -157,16 +216,18 @@
 					"(" + RegExpStringArr[k][y].replace(/ /igm, "&nbsp;") + ")",
 					"igm");
 				if (k == 0) //蓝色
-					text = text.replace(reg, "<span style='color:#009fef;'>$1</span>");
+					text = text.replace(reg, term.TERM_TEXT_BLUE + "$1" + term.TERM_NULL);
 				if (k == 1) //绿色
-					text = text.replace(reg, "<span style='color:#10e616;'>$1</span>");
+					text = text.replace(reg, term.TERM_TEXT_GREEN + "$1" + term.TERM_NULL);
 				if (k == 2) //红色
-					text = text.replace(reg, "<span style='color:#ea1f1a;'>$1</span>");
+					text = text.replace(reg, term.TERM_TEXT_RED + "$1" + term.TERM_NULL);
 				if (k == 3) //黄色
-					text = text.replace(reg, "<span style='color:#ffa700;'>$1</span>");
+					text = text.replace(reg, term.TERM_TEXT_YELLOW + "$1" + term.TERM_NULL);
 
 			}
 		}
+		// 行结尾符号替换
+		text = text.replace(/\r\n/gm, term.TERM_NULL + "\r\n");
 		return text;
 	}
 
@@ -195,6 +256,7 @@
 			}
 		});
 	}
+
 	TOOLS.popWindClose = function (res) {
 		$(".PopWin").removeAttr("style");
 		$("#balckWarp").removeAttr("style");
@@ -202,7 +264,6 @@
 		_popWindCallback(res);
 		_popWindCallback = null;
 	}
-
 
 	TOOLS.blackJumbotron = function (boolean) {
 		if (boolean) {
@@ -237,11 +298,56 @@
 				failureCallback && failureCallback();
 			}
 		};
-		oReq.upload.addEventListener("progress", (evt) => {
+		oReq.upload.addEventListener("progress", function (evt) {
 			var percentComplete = Math.round(evt.loaded * 100 / evt.total);
 			progressCallback(percentComplete);
 		}, false);
 		oReq.send(oMyForm);
+	}
+
+	TOOLS.page = function (toUrl) {
+		var url = window.location.href;
+		//page=template/component/console.html&api=server/console&v=sds
+		var parameter = url.split("#")[1];
+		if (!parameter) return false;
+		// [api=server/console,xxx=xxx]
+		parameter = parameter.split("&");
+		var parameters = {};
+		for (var k in parameter) {
+			var z = parameter[k].split("=");
+			parameters[z[0]] = z[1];
+		}
+		console.log(parameters)
+		if (parameters['page']) {
+			RES.redirectPage('./' + parameters['page'] + ".html", parameters['api'], parameters['listen']);
+			return true
+		} else {
+			return false;
+		}
+	}
+
+
+	TOOLS.definePage = function (v1, v2, v3) {
+		if (MCSERVER.listenServername) {
+			v3 = MCSERVER.listenServername;
+		} else {
+			v3 = MCSERVER.listenServername = TOOLS.pageParameter('listen');
+		}
+		console.log('definePage:', "#page=" + v1 + "&api=" + v2 + "&listen=" + v3);
+		window.location.hash = "#page=" + v1 + "&api=" + v2 + "&listen=" + v3;
+	}
+
+
+	TOOLS.pageParameter = function (pageKey) {
+		var hash = window.location.hash;
+		var parameter = hash.split("&");
+		for (var k in parameter) {
+			var z = parameter[k].split("=");
+			if (z[0] == pageKey) {
+				return z[1];
+			}
+		}
+		return null;
 	}
 
 })();

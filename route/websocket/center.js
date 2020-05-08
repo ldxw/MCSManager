@@ -47,8 +47,9 @@ let usage = process.memoryUsage();
 MCSERVER.logCenter.initLogData('CPU', 24);
 MCSERVER.logCenter.initLogData('RAM', 24);
 
-//实不相瞒，其实我是弄的缓存
+// 数据缓存，以避免频繁请求带来的损耗
 setInterval(function () {
+    // CPU 值缓存
     osUtils.cpuUsage(function (v) {
         cacheCPU = (v * 100).toFixed(2);
         MCSERVER.dataCenter.cacheCPU = cacheCPU;
@@ -67,7 +68,7 @@ setInterval(function () {
         sockec++
     }
     //统计封号ip数量
-    for (let k in MCSERVER.login) MCSERVER.login[k] > 10 ? banipc++ : banipc = banipc;
+    for (let k in MCSERVER.login) MCSERVER.login[k] > 10 ? banipc++ : banipc;
 
     //缓存值
     cacheSystemInfo = {
@@ -90,8 +91,8 @@ setInterval(function () {
         csrfCounter: counter.get('csrfCounter'), //可能存在的CSRF攻击次数
         notPermssionCounter: counter.get('notPermssionCounter'), //API的无权访问
         root: mversion.root,
-        oneversion: mversion.oneversion,
-        twoversion: mversion.twoversion,
+        verisonA: mversion.verisonA,
+        verisonB: mversion.verisonB,
         system: mversion.system
     }
 
