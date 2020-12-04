@@ -1,43 +1,79 @@
-//log 输出标准
+const log4js = require("log4js");
+const fs = require("fs-extra");
 
-MCSERVER.log = function () {
-    let str = "";
-    for (let i = 0; i < arguments.length; i++) {
-        str += arguments[i] + ' ';
+const LOG_FILE_PATH = "logs/current.log";
+
+if (!fs.existsSync("logs/")) fs.mkdirSync("logs");
+// 启动时自动储存上次日志文件
+if (fs.existsSync(LOG_FILE_PATH)) {
+  const date = new Date();
+  const logFilename = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDay() + "_" + date.getHours() + "-" + date.getMinutes() + "-" + date.getSeconds();
+  fs.renameSync(LOG_FILE_PATH, "logs/" + logFilename + ".log");
+}
+
+log4js.configure({
+  appenders: {
+    out: {
+      type: "stdout",
+      layout: {
+        type: "pattern",
+        pattern: "[%d{MM/dd hh:mm:ss}] [%[%p%]] %m"
+      }
+    },
+    app: {
+      type: "file",
+      filename: LOG_FILE_PATH,
+      layout: {
+        type: "pattern",
+        pattern: "%d %p %m"
+      }
     }
-    MCSERVER.infoLog('INFO', str);
-}
+  },
+  categories: {
+    default: {
+      appenders: ["out", "app"],
+      level: "info"
+    }
+  }
+});
 
-MCSERVER.infoLog = (info, value, colors = false) => {
-    let date = new Date();
-    let infoStr = colors ? info : info.green;
-    //时间格式
-    let timeStr = [
-        date.getFullYear(),
-        '-',
-        date.getMonth() + 1,
-        '-',
-        date.getDate(),
-        ' ',
-        date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds(),
-    ].join('');
-    console.log('[', timeStr.green, '] [', infoStr, ']', (value + '').white);
-}
+const logger = log4js.getLogger("default");
 
-//error 报告器
+// 多参数输出，但仅限于输出 INFO 级别
+MCSERVER.log = function (...p) {
+  let msg = "";
+  for (const v of p) {
+    if (v) msg += v + " ";
+  }
+  logger.info(msg);
+};
+
+// INFO 级别输出
+MCSERVER.infoLog = (info = "", value = "") => {
+  let msg = value;
+  if (info.toUpperCase() != "INFO") {
+    msg = [info, "-", value].join(" ");
+  }
+  logger.info(msg);
+};
+
+// INFO 级别输出
+MCSERVER.info = (...p) => {
+  let msg = "";
+  for (const v of p) {
+    if (v) msg += v + " ";
+  }
+  logger.info(msg);
+};
+
+// ERROR 级别输出
 MCSERVER.error = (msg, err) => {
-    let header = 'ERROR';
-    MCSERVER.infoLog(header.red, '\n--------Error-------\n', true);
-    MCSERVER.infoLog(header.red, msg.yellow, true);
-    console.log(err);
-    console.log("--------Error-------\n");
-}
+  logger.error(msg);
+  if (err) logger.error(err);
+};
 
-
+// WARN 级别输出
 MCSERVER.warning = (title, msg = null) => {
-    MCSERVER.infoLog('WARN'.yellow, title.white);
-    if (msg) {
-        MCSERVER.infoLog('WARN'.yellow, msg.white);
-    }
-
-}
+  logger.warn(title);
+  if (msg) logger.warn(msg);
+};
