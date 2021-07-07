@@ -90,7 +90,8 @@ class UserCenter {
         return false;
       }
 
-      // 一般模式 供ftp 等登录
+      // 一般模式 供可信任内部代码使用，无需要md5加密传值方式验证。
+      // 感谢来自 @axuanfeng 的 BUG 反馈
       if (notSafeLogin && loginUser.isPassword(password)) {
         truecb && truecb(loginUser);
         return true;
@@ -148,10 +149,10 @@ class UserCenter {
       // 暴力克隆对象
       const newData = JSON.parse(JSON.stringify(this.userList[name].dataModel));
       // 删除一部分隐私
-      delete newData['password'];
-      delete newData['salt'];
-      delete newData['__filename__'];
-      delete newData['apikey'];
+      delete newData["password"];
+      delete newData["salt"];
+      delete newData["__filename__"];
+      delete newData["apikey"];
       list.push(newData);
     }
     return list;

@@ -232,7 +232,7 @@
           }
         },
         toDeleteServer: function (serverName) {
-          var result = confirm("是否删除 [" + serverName + "] 这个服务端？\n注意: 删除服务器并不会删除服务端文件,只会从控制面板删除！");
+          var result = confirm("是否删除 [" + serverName + "] 这个服务端？\n注意: 此操作不可逆！");
           if (!result) return;
           WS.sendMsg("server/delete", serverName);
           RES.redirectPage("./template/server.html", "server/view");

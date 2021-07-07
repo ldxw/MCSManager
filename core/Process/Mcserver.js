@@ -24,6 +24,7 @@ class MinecraftServer extends ServerProcess {
     this.dataModel.oe = SYSTEM_CODE;
 
     this.dataModel.autoRestart = false; //是否自动重启
+    this.dataModel.autoStart = false; //是否自动启动
     this.dataModel.schedule = []; //计划任务配置项目
 
     this.properties = undefined; //服务端配置表
@@ -47,7 +48,6 @@ class MinecraftServer extends ServerProcess {
       mcpingMotd: ""
     };
   }
-
 
   //构建服务端配置信息
   builder(args) {
@@ -83,7 +83,6 @@ class MinecraftServer extends ServerProcess {
     this.propertiesLoad();
   }
 
-
   // 修改实例信息
   configureParams(args, key, defval = "") {
     // 根据松散配置（局部修改）和严格配置（整体修改）对应配置不同的优先级
@@ -94,7 +93,6 @@ class MinecraftServer extends ServerProcess {
     }
     return this.dataModel[key];
   }
-
 
   load() {
     this.dataModel.load();
